@@ -16,7 +16,14 @@ export class PaymentsController {
   // POST /api/auth/notifMeli (Webhook MercadoPago)
   @Public()
   @Post('notifMeli')
-  async mercadoPagoWebhook(@Body() payload: any, @Query('plant') plantCode?: string) {
-    return this.paymentsService.processMercadoPagoWebhook(payload, plantCode);
+  async mercadoPagoWebhook(
+    @Body() payload: any,
+    @Query() query: Record<string, any>,
+    @Query('plant') plantCode?: string,
+  ) {
+    return this.paymentsService.processMercadoPagoWebhook(
+      { ...(query || {}), ...(payload || {}) },
+      plantCode,
+    );
   }
 }

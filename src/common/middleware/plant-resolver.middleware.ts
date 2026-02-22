@@ -17,6 +17,10 @@ export class PlantResolverMiddleware implements NestMiddleware {
       '/api/auth/onboarding',
       '/auth/super',
       '/api/auth/super',
+      '/auth/notif',
+      '/api/auth/notif',
+      '/auth/notifMeli',
+      '/api/auth/notifMeli',
     ];
 
     // Skip plant resolution for health check and other non-plant routes

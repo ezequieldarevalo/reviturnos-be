@@ -186,7 +186,14 @@ export class PaymentsService {
       `MercadoPago webhook received (plant=${plantCode || 'unknown'}): ${JSON.stringify(payload)}`,
     );
 
-    const paymentId = payload?.data?.id;
+    const topic = payload?.topic || payload?.type || payload?.action;
+    const paymentId = payload?.data?.id || payload?.['data.id'] || payload?.id;
+
+    if (topic && topic !== 'payment') {
+      this.logger.log(`Ignoring MercadoPago webhook topic=${topic}`);
+      return { status: 'OK' };
+    }
+
     if (!paymentId) {
       this.logger.warn('Webhook without payment ID');
       return { status: 'OK' };
