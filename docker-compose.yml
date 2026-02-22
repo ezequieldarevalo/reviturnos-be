@@ -1,0 +1,55 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: reviturnos-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: reviturnos
+      POSTGRES_PASSWORD: reviturnos_password_2026
+      POSTGRES_DB: reviturnos
+    ports:
+      - '5433:5432'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      - reviturnos-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: reviturnos-redis
+    restart: unless-stopped
+    ports:
+      - '6380:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - reviturnos-network
+    command: redis-server --appendonly yes
+
+  # Descomenta cuando estés listo para deploy
+  # app:
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile
+  #   container_name: reviturnos-app
+  #   restart: unless-stopped
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - NODE_ENV=production
+  #   depends_on:
+  #     - postgres
+  #     - redis
+  #   networks:
+  #     - reviturnos-network
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  reviturnos-network:
+    driver: bridge

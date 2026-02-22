@@ -1,0 +1,26 @@
+import { Module } from '@nestjs/common';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Appointment } from '@/database/entities/appointment.entity';
+import { AppointmentDetail } from '@/database/entities/appointment-detail.entity';
+import { Payment } from '@/database/entities/payment.entity';
+import { Pricing } from '@/database/entities/pricing.entity';
+import { Plant } from '@/database/entities/plant.entity';
+import { AdminController } from './admin.controller';
+import { AdminService } from './admin.service';
+import { EmailModule } from '../email/email.module';
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([
+      Appointment,
+      AppointmentDetail,
+      Payment,
+      Pricing,
+      Plant,
+    ]),
+    EmailModule,
+  ],
+  controllers: [AdminController],
+  providers: [AdminService],
+})
+export class AdminModule {}

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <title>Pago Confirmado - {{plantName}}</title>
+    <style>
+        body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+        .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+        .header { background: #4CAF50; color: white; padding: 20px; text-align: center; }
+        .content { background: #f9f9f9; padding: 20px; }
+        .info-box { background: white; border-left: 4px solid #4CAF50; padding: 15px; margin: 15px 0; }
+        .label { font-weight: bold; color: #666; }
+        .value { font-size: 18px; color: #333; }
+        .footer { text-align: center; margin-top: 20px; color: #666; font-size: 12px; }
+        .button { display: inline-block; padding: 12px 24px; background: #2196F3; color: white; text-decoration: none; border-radius: 4px; margin: 10px 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>✅ Pago Confirmado</h1>
+        </div>
+        
+        <div class="content">
+            <p>Estimado/a <strong>{{customerName}}</strong>,</p>
+            
+            <p>Confirmamos que hemos recibido el pago de su turno de Revisión Técnica Obligatoria.</p>
+            
+            <div class="info-box">
+                <p class="label">Planta:</p>
+                <p class="value">{{plantName}}</p>
+            </div>
+            
+            <div class="info-box">
+                <p class="label">Vehículo - Dominio:</p>
+                <p class="value">{{vehicleDomain}}</p>
+            </div>
+            
+            <div class="info-box">
+                <p class="label">Fecha del turno:</p>
+                <p class="value">{{appointmentDate}}</p>
+            </div>
+            
+            <div class="info-box">
+                <p class="label">Hora:</p>
+                <p class="value">{{appointmentTime}}</p>
+            </div>
+            
+            <p><strong>Su turno está confirmado y pagado. Por favor, preséntese en la planta en la fecha y hora indicadas.</strong></p>
+            
+            <p style="text-align: center;">
+                <a href="{{changeDateUrl}}" class="button">Cambiar fecha del turno</a>
+            </p>
+            
+            <p><strong>Importante:</strong> Recuerde presentarse con la siguiente documentación:</p>
+            <ul>
+                <li>Cédula verde o azul del vehículo</li>
+                <li>DNI del titular</li>
+                <li>Comprobante de pago de la patente</li>
+                <li>Póliza del seguro vigente</li>
+            </ul>
+            
+            <p>Si tiene alguna consulta, no dude en contactarnos.</p>
+            
+            <p>Saludos cordiales,<br>
+            <strong>{{plantName}}</strong></p>
+        </div>
+        
+        <div class="footer">
+            <p>Este es un correo electrónico automático, por favor no responder.</p>
+        </div>
+    </div>
+</body>
+</html>
