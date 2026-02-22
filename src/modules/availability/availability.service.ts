@@ -167,7 +167,9 @@ export class AvailabilityService {
     line: InspectionLine,
   ): TimeSlot[] {
     const slots: TimeSlot[] = [];
-    const { from, to, slotsPerHour } = schedule;
+    const from = this.normalizeScheduleTime(schedule.from);
+    const to = this.normalizeScheduleTime(schedule.to);
+    const slotsPerHour = Number(schedule.slotsPerHour) || 4;
 
     const [fromHour, fromMin] = from.split(':').map(Number);
     const [toHour, toMin] = to.split(':').map(Number);
@@ -197,6 +199,50 @@ export class AvailabilityService {
     }
 
     return slots;
+  }
+
+  /**
+   * Normaliza horarios configurados para tolerar formatos legacy migrados.
+   * Ejemplos admitidos:
+   * - "08:00" / "08:00:00" -> "08:00"
+   * - "8" -> "08:00"
+   * - "800" -> "08:00"
+   * - "1530" -> "15:30"
+   * - "00:08" (bug de migración) -> "08:00"
+   */
+  private normalizeScheduleTime(rawValue: unknown): string {
+    const raw = String(rawValue ?? '').trim();
+    if (!raw) return '00:00';
+
+    const hhmmss = raw.match(/^(\d{1,2}):(\d{2})(?::(\d{2}))?$/);
+    if (hhmmss) {
+      const hours = Number(hhmmss[1]);
+      const minutes = Number(hhmmss[2]);
+
+      // Caso legacy detectado en migración: "00:08" quería decir "08:00"
+      if (hours === 0 && minutes > 0 && minutes <= 23) {
+        return `${String(minutes).padStart(2, '0')}:00`;
+      }
+
+      return `${String(Math.max(0, Math.min(23, hours))).padStart(2, '0')}:${String(
+        Math.max(0, Math.min(59, minutes)),
+      ).padStart(2, '0')}`;
+    }
+
+    const digits = raw.replace(/\D/g, '');
+    if (!digits) return '00:00';
+
+    // "8" => 08:00, "17" => 17:00
+    if (digits.length <= 2) {
+      const hours = Math.max(0, Math.min(23, Number(digits)));
+      return `${String(hours).padStart(2, '0')}:00`;
+    }
+
+    // "800" => 08:00, "930" => 09:30, "1530" => 15:30
+    const padded = digits.padStart(4, '0').slice(-4);
+    const hours = Math.max(0, Math.min(23, Number(padded.slice(0, 2))));
+    const minutes = Math.max(0, Math.min(59, Number(padded.slice(2, 4))));
+    return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
   }
 
   /**
