@@ -953,15 +953,45 @@ export class AdminService {
     }
 
     // Buscar nuevo turno disponible
-    const newAppointment = await this.appointmentsRepo.findOne({
-      where: {
-        plantId: plant.id,
-        appointmentDate: dto.nueva_fecha,
-        appointmentTime: dto.nueva_hora,
-        lineId: dto.nueva_linea ? dto.nueva_linea.toString() : null,
-        status: AppointmentStatus.AVAILABLE,
-      },
-    });
+    const targetLineId = dto.nueva_linea ? dto.nueva_linea.toString() : null;
+    let newAppointment = null;
+
+    if (targetLineId) {
+      newAppointment = await this.appointmentsRepo.findOne({
+        where: {
+          plantId: plant.id,
+          appointmentDate: dto.nueva_fecha,
+          appointmentTime: dto.nueva_hora,
+          lineId: targetLineId,
+          status: AppointmentStatus.AVAILABLE,
+        },
+      });
+    } else {
+      // Paridad legacy: si no viene línea, intentar misma línea actual y luego cualquiera
+      if (currentAppointment.lineId) {
+        newAppointment = await this.appointmentsRepo.findOne({
+          where: {
+            plantId: plant.id,
+            appointmentDate: dto.nueva_fecha,
+            appointmentTime: dto.nueva_hora,
+            lineId: currentAppointment.lineId,
+            status: AppointmentStatus.AVAILABLE,
+          },
+        });
+      }
+
+      if (!newAppointment) {
+        newAppointment = await this.appointmentsRepo.findOne({
+          where: {
+            plantId: plant.id,
+            appointmentDate: dto.nueva_fecha,
+            appointmentTime: dto.nueva_hora,
+            status: AppointmentStatus.AVAILABLE,
+          },
+          order: { lineId: 'ASC' },
+        });
+      }
+    }
 
     if (!newAppointment) {
       throw new NotFoundException('No hay turno disponible en la nueva fecha/hora');
