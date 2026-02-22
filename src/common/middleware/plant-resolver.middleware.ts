@@ -12,8 +12,11 @@ export class PlantResolverMiddleware implements NestMiddleware {
       '/health',
       '/metrics',
       '/auth/login',
+      '/api/auth/login',
       '/auth/onboarding',
+      '/api/auth/onboarding',
       '/auth/super',
+      '/api/auth/super',
     ];
 
     // Skip plant resolution for health check and other non-plant routes
