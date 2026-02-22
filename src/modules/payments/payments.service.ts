@@ -18,6 +18,20 @@ import { randomBytes } from 'crypto';
 @Injectable()
 export class PaymentsService {
   private readonly logger = new Logger(PaymentsService.name);
+  private readonly legacyExcludedPaymentMethods = [
+    'bapropagos',
+    'rapipago',
+    'pagofacil',
+    'cargavirtual',
+    'redlink',
+    'cobroexpress',
+  ];
+  private readonly legacyCashExcludedPaymentMethods = [
+    'bapropagos',
+    'cargavirtual',
+    'redlink',
+    'cobroexpress',
+  ];
 
   constructor(
     @InjectRepository(Payment)
@@ -94,7 +108,7 @@ export class PaymentsService {
     const cashExpirationMinutes = plant.config?.payment?.cashExpirationMinutes || 1440;
     const marginPostCashMinutes = plant.config?.payment?.marginPostCashPaymentMinutes || 0;
 
-    const cardExpiration = moment(currentDate).add(expirationMinutes, 'minutes');
+    const cardExpiration = moment(currentDate).add(cashExpirationMinutes, 'minutes');
     const cashExpiration = moment(currentDate).add(cashExpirationMinutes, 'minutes');
 
     // Formatear fechas ISO 8601 con timezone
@@ -102,7 +116,8 @@ export class PaymentsService {
     const dateOfExpiration = cashExpiration.format('YYYY-MM-DDTHH:mm:ss.SSS') + '-03:00';
 
     // Determinar si permitir efectivo
-    const cashMethodsLimitMinutes = cashExpirationMinutes + marginPostCashMinutes;
+    const cashMethodsLimitMinutes =
+      expirationMinutes + cashExpirationMinutes + marginPostCashMinutes;
     const appointmentDateTime = moment(
       `${appointment.appointmentDate} ${appointment.appointmentTime}`,
     );
@@ -110,24 +125,22 @@ export class PaymentsService {
     const allowCashMethods = cashMethodsLimit.isBefore(appointmentDateTime);
 
     // Métodos de pago excluidos
-    let excludedPaymentMethods = [];
+    const mpCfg = (plant.config?.integrations?.mercadopago || {}) as any;
+    const configuredExcluded = mpCfg.excludedPaymentMethods;
+    const configuredCashExcluded = (mpCfg as any).cashExcludedPaymentMethods;
+
+    let excludedPaymentMethods: string[] = [];
     if (plant.code === 'lasheras' || plant.code === 'maipu') {
       if (allowCashMethods) {
-        // Permitir efectivo: excluir solo lo configurado
-        excludedPaymentMethods =
-          plant.config?.integrations?.mercadopago?.excludedPaymentMethods || [];
+        // Permitir efectivo: excluir métodos no efectivo (paridad legacy)
+        excludedPaymentMethods = configuredCashExcluded || this.legacyCashExcludedPaymentMethods;
       } else {
-        // NO permitir efectivo: excluir Rapipago/PagoFácil
-        excludedPaymentMethods = [
-          'rapipago',
-          'pagofacil',
-          ...(plant.config?.integrations?.mercadopago?.excludedPaymentMethods || []),
-        ];
+        // NO permitir efectivo: excluir incluyendo Rapipago/PagoFácil (paridad legacy)
+        excludedPaymentMethods = configuredExcluded || this.legacyExcludedPaymentMethods;
       }
     } else {
-      // Otras plantas: usar config default
-      excludedPaymentMethods =
-        plant.config?.integrations?.mercadopago?.excludedPaymentMethods || [];
+      // Otras plantas: lista general (paridad legacy)
+      excludedPaymentMethods = configuredExcluded || this.legacyExcludedPaymentMethods;
     }
 
     // Obtener precio

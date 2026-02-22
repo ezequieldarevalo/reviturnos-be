@@ -149,6 +149,7 @@ export interface PlantConfig {
     mercadopago?: {
       enabled: boolean;
       excludedPaymentMethods?: string[]; // ['rapipago', 'pagofacil']
+      cashExcludedPaymentMethods?: string[]; // métodos excluidos cuando se permite pago en efectivo
     };
     rto?: { enabled: boolean; confirmQuotes: boolean };
   };
