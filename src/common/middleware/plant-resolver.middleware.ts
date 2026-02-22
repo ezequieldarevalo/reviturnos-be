@@ -22,9 +22,13 @@ export class PlantResolverMiddleware implements NestMiddleware {
       '/auth/notifMeli',
       '/api/auth/notifMeli',
     ];
+    const skipPlantResolutionPattern = /(^|\/)auth\/(login|onboarding|super|notif|notifMeli)(\/|$)/;
 
     // Skip plant resolution for health check and other non-plant routes
-    if (skipPlantResolutionPaths.some((path) => req.path.includes(path))) {
+    if (
+      skipPlantResolutionPaths.some((path) => req.path.includes(path)) ||
+      skipPlantResolutionPattern.test(req.path)
+    ) {
       return next();
     }
 
@@ -79,7 +83,10 @@ export class PlantResolverMiddleware implements NestMiddleware {
     } catch (error) {
       // Si el servicio de plantas aún no está disponible, continuar sin planta
       // Esto permite que las rutas de auth funcionen
-      if (skipPlantResolutionPaths.some((path) => req.path.includes(path))) {
+      if (
+        skipPlantResolutionPaths.some((path) => req.path.includes(path)) ||
+        skipPlantResolutionPattern.test(req.path)
+      ) {
         return next();
       }
       throw error;
