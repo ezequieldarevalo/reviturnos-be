@@ -265,14 +265,27 @@ export class PaymentsService {
     }
   }
 
-  private buildMercadoPagoNotificationUrl(plant: Plant): string {
-    if (!plant.mpNotifUrl) {
-      throw new Error('MELI_NOTIF_URL_NOT_CONFIGURED');
+  private getMercadoPagoNotificationBaseUrl(): string {
+    const configuredBaseUrl =
+      this.configService.get<string>('MERCADOPAGO_NOTIFICATION_BASE_URL') ||
+      this.configService.get<string>('APP_URL');
+
+    const baseUrl = (configuredBaseUrl || '').trim();
+    if (!baseUrl) {
+      throw new Error('MELI_NOTIF_BASE_URL_NOT_CONFIGURED');
     }
 
-    const separator = plant.mpNotifUrl.includes('?') ? '&' : '?';
-    const hasPlantParam = /(?:\?|&)plant=/.test(plant.mpNotifUrl);
-    return hasPlantParam ? plant.mpNotifUrl : `${plant.mpNotifUrl}${separator}plant=${plant.code}`;
+    return baseUrl.replace(/\/+$/, '');
+  }
+
+  private buildMercadoPagoNotificationUrl(plant: Plant): string {
+    const baseUrl = this.getMercadoPagoNotificationBaseUrl();
+    const endpoint = /\/api\/auth\/notifMeli$/i.test(baseUrl)
+      ? baseUrl
+      : `${baseUrl}/api/auth/notifMeli`;
+
+    const separator = endpoint.includes('?') ? '&' : '?';
+    return `${endpoint}${separator}plant=${encodeURIComponent(plant.code)}`;
   }
 
   private async resolveMercadoPagoPayment(paymentId: string, plantCode?: string) {
