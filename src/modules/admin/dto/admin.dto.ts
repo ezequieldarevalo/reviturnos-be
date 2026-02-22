@@ -8,7 +8,10 @@ import {
   IsArray,
   MaxLength,
   IsUUID,
+  IsEmail,
+  IsEnum,
 } from 'class-validator';
+import { UserRole } from '@/common/constants';
 
 export class CreateAppointmentDto {
   @IsDateString()
@@ -135,4 +138,134 @@ export class UpdateMercadoPagoConfigDto {
   @IsOptional()
   @IsArray()
   excludedPaymentMethods?: string[];
+}
+
+export class SuperAdminListUsersQueryDto {
+  @IsOptional()
+  @IsUUID()
+  plantId?: string;
+}
+
+export class SuperAdminCreatePlantDto {
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(40)
+  code: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(80)
+  slug?: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  name: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  address?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  active?: boolean;
+}
+
+export class SuperAdminUpdatePlantDto {
+  @IsString()
+  @IsOptional()
+  @MaxLength(80)
+  slug?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  name?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(255)
+  address?: string;
+
+  @IsBoolean()
+  @IsOptional()
+  active?: boolean;
+}
+
+export class SuperAdminCreateUserDto {
+  @IsUUID()
+  @IsNotEmpty()
+  plantId: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  name?: string;
+
+  @IsEmail()
+  @IsNotEmpty()
+  @MaxLength(200)
+  email: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
+  password: string;
+
+  @IsEnum(UserRole)
+  @IsOptional()
+  role?: UserRole;
+
+  @IsBoolean()
+  @IsOptional()
+  active?: boolean;
+}
+
+export class SuperAdminUpdateUserDto {
+  @IsUUID()
+  @IsOptional()
+  plantId?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  name?: string;
+
+  @IsEnum(UserRole)
+  @IsOptional()
+  role?: UserRole;
+
+  @IsBoolean()
+  @IsOptional()
+  active?: boolean;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(200)
+  password?: string;
+}
+
+export class ListActionLogsDto {
+  @IsOptional()
+  @IsInt()
+  limit?: number;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(100)
+  action?: string;
+
+  @IsOptional()
+  @IsUUID()
+  userId?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(60)
+  targetType?: string;
+
+  @IsOptional()
+  @IsUUID()
+  plantId?: string;
 }

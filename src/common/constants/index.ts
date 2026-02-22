@@ -43,6 +43,7 @@ export const FUEL_TYPES = ['NAFTA', 'DIESEL', 'GAS'];
 
 // User Roles
 export enum UserRole {
+  SUPERADMIN = 'superadmin',
   ADMIN = 'admin',
   OPERATOR = 'operator',
   VIEWER = 'viewer',

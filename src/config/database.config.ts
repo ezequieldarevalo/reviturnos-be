@@ -9,6 +9,7 @@ import { Payment } from '../database/entities/payment.entity';
 import { InspectionLine } from '../database/entities/inspection-line.entity';
 import { Pricing } from '../database/entities/pricing.entity';
 import { ErrorLog } from '../database/entities/error-log.entity';
+import { AdminActionLog } from '../database/entities/admin-action-log.entity';
 
 const entities = [
   Plant,
@@ -19,6 +20,7 @@ const entities = [
   InspectionLine,
   Pricing,
   ErrorLog,
+  AdminActionLog,
 ];
 
 export const typeOrmConfigAsync: TypeOrmModuleAsyncOptions = {

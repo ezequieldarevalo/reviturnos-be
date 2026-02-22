@@ -8,14 +8,29 @@ export class PlantResolverMiddleware implements NestMiddleware {
   constructor(private plantsService: PlantsService) {}
 
   async use(req: Request, res: Response, next: NextFunction) {
+    const skipPlantResolutionPaths = [
+      '/health',
+      '/metrics',
+      '/auth/login',
+      '/auth/onboarding',
+      '/auth/super',
+    ];
+
     // Skip plant resolution for health check and other non-plant routes
-    if (req.path.includes('/health') || req.path.includes('/metrics')) {
+    if (skipPlantResolutionPaths.some((path) => req.path.includes(path))) {
       return next();
     }
 
-    // 1. Detectar planta por subdomain
+    // 1. Detectar planta por subdomain (solo hostnames válidos, no IP)
     const host = req.hostname;
-    const subdomain = host.split('.')[0];
+    const hostParts = host.split('.');
+    const isIPv4 = /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+    const isIPv6 = host.includes(':');
+    const isLocalHost = host === 'localhost';
+    const hasSubdomain = hostParts.length >= 3;
+    const subdomain = hasSubdomain ? hostParts[0] : null;
+    const subdomainPlant =
+      !isIPv4 && !isIPv6 && !isLocalHost && subdomain && subdomain !== 'api' ? subdomain : null;
 
     // 2. Fallback: Header X-Plant-Code
     const plantCodeHeader = req.headers['x-plant-code'] as string;
@@ -23,10 +38,7 @@ export class PlantResolverMiddleware implements NestMiddleware {
     // 3. Fallback: Path /lasheras/api/... or /api/lasheras/...
     const pathMatch = req.path.match(/\/(?:api\/)?([a-z]+)\//);
 
-    const plantCode =
-      (subdomain !== 'localhost' && subdomain !== 'api' ? subdomain : null) ||
-      plantCodeHeader ||
-      (pathMatch && pathMatch[1]);
+    const plantCode = plantCodeHeader || subdomainPlant || (pathMatch && pathMatch[1]);
 
     if (!plantCode) {
       throw new BadRequestException({
@@ -60,7 +72,7 @@ export class PlantResolverMiddleware implements NestMiddleware {
     } catch (error) {
       // Si el servicio de plantas aún no está disponible, continuar sin planta
       // Esto permite que las rutas de auth funcionen
-      if (req.path.includes('/auth/login')) {
+      if (skipPlantResolutionPaths.some((path) => req.path.includes(path))) {
         return next();
       }
       throw error;
