@@ -5,7 +5,7 @@ import {
   ForbiddenException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { In, Repository } from 'typeorm';
 import * as moment from 'moment';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
@@ -996,7 +996,7 @@ export class AdminService {
     }
 
     // Buscar nuevo turno disponible
-    const targetLineId = dto.nueva_linea ? dto.nueva_linea.toString() : null;
+    const targetLineId = dto.nueva_linea ? String(dto.nueva_linea).trim() : null;
     let newAppointment = null;
 
     if (targetLineId) {
@@ -1069,6 +1069,63 @@ export class AdminService {
             order: { lineId: 'ASC' },
           });
         }
+      }
+    }
+
+    if (!newAppointment) {
+      const candidateLineIds = (() => {
+        if (targetLineId) return [targetLineId];
+        if (!ignoreVehicleLines && sameVehicleLineIds.length) return [...sameVehicleLineIds];
+        if (currentAppointment.lineId) return [currentAppointment.lineId];
+        return [] as string[];
+      })();
+
+      for (const lineId of candidateLineIds) {
+        if (!lineId) continue;
+
+        const occupied = await this.appointmentsRepo.findOne({
+          where: {
+            plantId: plant.id,
+            appointmentDate: dto.nueva_fecha,
+            appointmentTime: dto.nueva_hora,
+            lineId,
+            status: In([
+              AppointmentStatus.RESERVED,
+              AppointmentStatus.CONFIRMED,
+              AppointmentStatus.PAID,
+              AppointmentStatus.COMPLETED,
+            ]),
+          },
+        });
+        if (occupied) continue;
+
+        const existingSlot = await this.appointmentsRepo.findOne({
+          where: {
+            plantId: plant.id,
+            appointmentDate: dto.nueva_fecha,
+            appointmentTime: dto.nueva_hora,
+            lineId,
+          },
+        });
+
+        if (existingSlot) {
+          if (existingSlot.status === AppointmentStatus.AVAILABLE) {
+            newAppointment = existingSlot;
+            break;
+          }
+          continue;
+        }
+
+        const createdSlot = this.appointmentsRepo.create({
+          plantId: plant.id,
+          appointmentDate: dto.nueva_fecha,
+          appointmentTime: dto.nueva_hora,
+          lineId,
+          status: AppointmentStatus.AVAILABLE,
+          origin: AppointmentOrigin.ADMIN,
+        });
+        newAppointment = await this.appointmentsRepo.save(createdSlot);
+        break;
       }
     }
 

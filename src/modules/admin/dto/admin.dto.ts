@@ -98,9 +98,9 @@ export class RescheduleAppointmentDto {
   @IsNotEmpty()
   nueva_hora: string; // HH:mm
 
-  @IsInt()
+  @IsString()
   @IsOptional()
-  nueva_linea?: number;
+  nueva_linea?: string;
 }
 
 export class GetAppointmentDataDto {
