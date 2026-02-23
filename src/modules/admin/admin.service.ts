@@ -850,6 +850,9 @@ export class AdminService {
       customerPhone: dto.telefono,
       vehicleType: dto.tipo_vehiculo,
       vehicleFuel: dto.combustible || '',
+      vehicleBrand: dto.marca || null,
+      vehicleModel: dto.modelo || null,
+      vehicleYear: dto.anio || null,
       price: pricing.price,
     });
     await this.detailsRepo.save(detail);

@@ -59,6 +59,20 @@ export class CreateAppointmentDto {
 
   @IsString()
   @IsOptional()
+  @MaxLength(100)
+  marca?: string;
+
+  @IsString()
+  @IsOptional()
+  @MaxLength(100)
+  modelo?: string;
+
+  @IsInt()
+  @IsOptional()
+  anio?: number;
+
+  @IsString()
+  @IsOptional()
   linea?: string;
 }
 
