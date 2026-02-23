@@ -709,7 +709,25 @@ export class AdminService {
   }
 
   async searchAppointmentById(plant: Plant, user: User, appointmentId: string) {
-    return this.getAppointmentData(plant, user, appointmentId);
+    const data = await this.getAppointmentData(plant, user, appointmentId);
+
+    // Si se busca un ID viejo de un turno reprogramado, devolver el turno nuevo
+    if (data?.status === AppointmentStatus.AVAILABLE && !data?.datos) {
+      const rescheduleLog = await this.adminActionLogsRepo
+        .createQueryBuilder('log')
+        .where('log."plantId" = :plantId', { plantId: plant.id })
+        .andWhere('log.action = :action', { action: 'appointment.reschedule' })
+        .andWhere("log.before->>'appointmentId' = :appointmentId", { appointmentId })
+        .orderBy('log."createdAt"', 'DESC')
+        .getOne();
+
+      const newAppointmentId = rescheduleLog?.after?.appointmentId;
+      if (newAppointmentId && newAppointmentId !== appointmentId) {
+        return this.getAppointmentData(plant, user, newAppointmentId);
+      }
+    }
+
+    return data;
   }
 
   async searchAppointmentByDomain(plant: Plant, user: User, dominio: string) {
