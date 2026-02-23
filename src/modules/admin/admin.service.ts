@@ -783,6 +783,10 @@ export class AdminService {
       throw new NotFoundException('Turno no encontrado');
     }
 
+    if (appointment.status === AppointmentStatus.COMPLETED) {
+      throw new BadRequestException('El turno ya está realizado');
+    }
+
     const previousStatus = appointment.status;
     appointment.status = AppointmentStatus.COMPLETED;
     await this.appointmentsRepo.save(appointment);
