@@ -57,9 +57,9 @@ export class CreateAppointmentDto {
   @MaxLength(20)
   combustible?: string;
 
-  @IsInt()
+  @IsString()
   @IsOptional()
-  linea?: number;
+  linea?: string;
 }
 
 export class RegisterPaymentDto {
