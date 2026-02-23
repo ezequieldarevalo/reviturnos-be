@@ -1064,7 +1064,7 @@ export class AdminService {
     // Liberar turno anterior
     currentAppointment.status = AppointmentStatus.AVAILABLE;
     currentAppointment.reservedAt = null;
-    currentAppointment.origin = null;
+    currentAppointment.origin = AppointmentOrigin.WEB;
     await this.appointmentsRepo.save(currentAppointment);
 
     // Marcar nuevo turno con el mismo status que tenía el anterior
