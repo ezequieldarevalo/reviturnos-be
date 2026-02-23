@@ -19,6 +19,7 @@ import { User } from '@/database/entities/user.entity';
 import { AdminActionLog } from '@/database/entities/admin-action-log.entity';
 import { AppointmentStatus, AppointmentOrigin, PaymentStatus, UserRole } from '@/common/constants';
 import { EmailService } from '../email/email.service';
+import { AvailabilityService } from '../availability/availability.service';
 import {
   CreateAppointmentDto,
   RegisterPaymentDto,
@@ -52,6 +53,7 @@ export class AdminService {
     @InjectRepository(AdminActionLog)
     private adminActionLogsRepo: Repository<AdminActionLog>,
     private emailService: EmailService,
+    private availabilityService: AvailabilityService,
     private configService: ConfigService,
   ) {}
 
@@ -808,19 +810,67 @@ export class AdminService {
   async createAppointment(plant: Plant, user: User, dto: CreateAppointmentDto) {
     this.assertPlantWriteAccess(plant, user);
 
+    const targetLineId = dto.linea ? String(dto.linea).trim() : null;
+
     // Buscar turno disponible en la fecha/hora especificada
-    const existingAppointment = await this.appointmentsRepo.findOne({
+    let existingAppointment = await this.appointmentsRepo.findOne({
       where: {
         plantId: plant.id,
         appointmentDate: dto.fecha,
         appointmentTime: dto.hora,
-        lineId: dto.linea ? dto.linea.toString() : null,
+        lineId: targetLineId,
         status: AppointmentStatus.AVAILABLE,
       },
     });
 
     if (!existingAppointment) {
-      throw new NotFoundException('No hay turno disponible en la fecha/hora especificada');
+      // Si el slot viene de disponibilidad dinámica (sin fila pre-creada en DB), validarlo y crearlo
+      const availability = await this.availabilityService.getAvailableSlots(
+        plant.id,
+        dto.tipo_vehiculo,
+        moment(dto.fecha, 'YYYY-MM-DD').startOf('day').toDate(),
+        moment(dto.fecha, 'YYYY-MM-DD').endOf('day').toDate(),
+      );
+
+      const selectedSlot = availability.slots.find(
+        (slot) =>
+          slot.available &&
+          slot.date === dto.fecha &&
+          slot.time === dto.hora &&
+          (!targetLineId || slot.lineId === targetLineId),
+      );
+
+      if (!selectedSlot) {
+        throw new NotFoundException('No hay turno disponible en la fecha/hora especificada');
+      }
+
+      const conflictingAppointment = await this.appointmentsRepo.findOne({
+        where: {
+          plantId: plant.id,
+          appointmentDate: dto.fecha,
+          appointmentTime: dto.hora,
+          lineId: selectedSlot.lineId,
+          status: In([
+            AppointmentStatus.RESERVED,
+            AppointmentStatus.CONFIRMED,
+            AppointmentStatus.PAID,
+            AppointmentStatus.COMPLETED,
+          ]),
+        },
+      });
+
+      if (conflictingAppointment) {
+        throw new NotFoundException('No hay turno disponible en la fecha/hora especificada');
+      }
+
+      existingAppointment = this.appointmentsRepo.create({
+        plantId: plant.id,
+        lineId: selectedSlot.lineId,
+        appointmentDate: dto.fecha,
+        appointmentTime: dto.hora,
+        status: AppointmentStatus.AVAILABLE,
+        origin: AppointmentOrigin.ADMIN,
+      });
     }
 
     // Obtener precio

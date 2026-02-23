@@ -11,6 +11,7 @@ import { AdminActionLog } from '@/database/entities/admin-action-log.entity';
 import { AdminController } from './admin.controller';
 import { AdminService } from './admin.service';
 import { EmailModule } from '../email/email.module';
+import { AvailabilityModule } from '../availability/availability.module';
 
 @Module({
   imports: [
@@ -25,6 +26,7 @@ import { EmailModule } from '../email/email.module';
       AdminActionLog,
     ]),
     EmailModule,
+    AvailabilityModule,
   ],
   controllers: [AdminController],
   providers: [AdminService],
