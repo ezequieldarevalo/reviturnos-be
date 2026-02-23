@@ -964,6 +964,10 @@ export class AdminService {
       throw new NotFoundException('Turno no encontrado');
     }
 
+    if (currentAppointment.status === AppointmentStatus.COMPLETED) {
+      throw new BadRequestException('No se puede reprogramar un turno realizado');
+    }
+
     // Obtener detalles
     const detail = await this.detailsRepo.findOne({
       where: { appointmentId: currentAppointment.id },
