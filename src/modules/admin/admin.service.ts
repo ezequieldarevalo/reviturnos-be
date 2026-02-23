@@ -14,6 +14,7 @@ import { AppointmentDetail } from '@/database/entities/appointment-detail.entity
 import { Payment } from '@/database/entities/payment.entity';
 import { Plant } from '@/database/entities/plant.entity';
 import { Pricing } from '@/database/entities/pricing.entity';
+import { InspectionLine } from '@/database/entities/inspection-line.entity';
 import { User } from '@/database/entities/user.entity';
 import { AdminActionLog } from '@/database/entities/admin-action-log.entity';
 import { AppointmentStatus, AppointmentOrigin, PaymentStatus, UserRole } from '@/common/constants';
@@ -42,6 +43,8 @@ export class AdminService {
     private paymentsRepo: Repository<Payment>,
     @InjectRepository(Pricing)
     private pricingRepo: Repository<Pricing>,
+    @InjectRepository(InspectionLine)
+    private linesRepo: Repository<InspectionLine>,
     @InjectRepository(Plant)
     private plantsRepo: Repository<Plant>,
     @InjectRepository(User)
@@ -952,6 +955,28 @@ export class AdminService {
       throw new NotFoundException('Datos del turno no encontrados');
     }
 
+    const normalizeVehicleType = (value?: string | null) =>
+      (value || '')
+        .toUpperCase()
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const vehicleType = normalizeVehicleType(detail.vehicleType);
+    const ignoreVehicleLines = plant.config?.business?.ignoreVehicleLines ?? false;
+
+    let sameVehicleLineIds: string[] = [];
+    if (!ignoreVehicleLines && vehicleType) {
+      const lines = await this.linesRepo.find({
+        where: { plantId: plant.id, active: true },
+      });
+
+      sameVehicleLineIds = lines
+        .filter((line) => normalizeVehicleType(line.vehicleType) === vehicleType)
+        .map((line) => line.id);
+    }
+
     // Buscar nuevo turno disponible
     const targetLineId = dto.nueva_linea ? dto.nueva_linea.toString() : null;
     let newAppointment = null;
@@ -966,6 +991,24 @@ export class AdminService {
           status: AppointmentStatus.AVAILABLE,
         },
       });
+
+      if (!newAppointment && !ignoreVehicleLines && sameVehicleLineIds.length > 0) {
+        for (const lineId of sameVehicleLineIds) {
+          const slot = await this.appointmentsRepo.findOne({
+            where: {
+              plantId: plant.id,
+              appointmentDate: dto.nueva_fecha,
+              appointmentTime: dto.nueva_hora,
+              lineId,
+              status: AppointmentStatus.AVAILABLE,
+            },
+          });
+          if (slot) {
+            newAppointment = slot;
+            break;
+          }
+        }
+      }
     } else {
       // Paridad legacy: si no viene línea, intentar misma línea actual y luego cualquiera
       if (currentAppointment.lineId) {
@@ -981,15 +1024,33 @@ export class AdminService {
       }
 
       if (!newAppointment) {
-        newAppointment = await this.appointmentsRepo.findOne({
-          where: {
-            plantId: plant.id,
-            appointmentDate: dto.nueva_fecha,
-            appointmentTime: dto.nueva_hora,
-            status: AppointmentStatus.AVAILABLE,
-          },
-          order: { lineId: 'ASC' },
-        });
+        if (!ignoreVehicleLines && sameVehicleLineIds.length > 0) {
+          for (const lineId of sameVehicleLineIds) {
+            const slot = await this.appointmentsRepo.findOne({
+              where: {
+                plantId: plant.id,
+                appointmentDate: dto.nueva_fecha,
+                appointmentTime: dto.nueva_hora,
+                lineId,
+                status: AppointmentStatus.AVAILABLE,
+              },
+            });
+            if (slot) {
+              newAppointment = slot;
+              break;
+            }
+          }
+        } else {
+          newAppointment = await this.appointmentsRepo.findOne({
+            where: {
+              plantId: plant.id,
+              appointmentDate: dto.nueva_fecha,
+              appointmentTime: dto.nueva_hora,
+              status: AppointmentStatus.AVAILABLE,
+            },
+            order: { lineId: 'ASC' },
+          });
+        }
       }
     }
 
